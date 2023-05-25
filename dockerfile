@@ -11,7 +11,7 @@ ADD . /app
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 运行应用所需要的端口
-EXPOSE 5000
+EXPOSE 5555
 
 # 容器启动后执行的命令
 CMD ["python", "radius_clear_onlie/clear_api.py"]
