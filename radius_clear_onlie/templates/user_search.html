@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <style>
+        /* Set background and font for the body */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f2f2f2;
+        }
+
+        .table-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Style the navigation bar */
+        .navbar {
+            background-color: #4a4a4a !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar a {
+            color: white !important;
+        }
+
+        .navbar a:hover {
+            color: #e1e1e1 !important;
+        }
+
+        /* Style the container */
+        .container {
+            padding: 2rem;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        /* Style the form elements */
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-control {
+            border-radius: 4px;
+        }
+
+        .btn-primary {
+            background-color: #4a4a4a !important;
+            border-color: #4a4a4a !important;
+            border-radius: 4px;
+        }
+
+        .btn-primary:hover {
+            background-color: #2c2c2c !important;
+            border-color: #2c2c2c !important;
+        }
+
+        /* Style the table */
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+    </style>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="css2(1)">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <a class="navbar-brand" href="#">radius在线表管理系统（内部）</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="/user_management">User Management</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>用户及地区查询</h1>
+        <form id="search_form">
+            <div class="form-group">
+                <label for="region_name">Region Name:</label>
+                <input type="text" class="form-control" id="region_name" placeholder="Enter region name">
+                <button type="button" class="btn btn-primary" onclick="getRegionCount()">Get Region Count</button>
+                <p id="region_count"></p>
+            </div>
+            <div class="form-group">
+                <label for="login_name">Login Name:</label>
+                <input type="text" class="form-control" id="login_name" placeholder="Enter login name">
+                <button type="button" class="btn btn-primary" onclick="getUserOnline()">Check User Online</button>
+                <p id="user_online"></p>
+                <p id="user_details"></p>
+            </div>
+            <div class="form-group">
+                <label for="region_name_list">Region Name for User List:</label>
+                <input type="text" class="form-control" id="region_name_list" placeholder="Enter region name">
+                <button type="button" class="btn btn-primary" onclick="getUsersByRegion()">Get Users By Region</button>
+            </div>
+        </form>
+        <div id="user_list" class="table-container text-center">
+        </div>
+
+    </div>
+    <script>
+        async function getRegionCount() {
+            const region_name = document.getElementById("region_name").value;
+            const online_users_count = await fetch(`/api/online_users_count?region_name=${region_name}`).then(res => res.json());
+            document.getElementById("region_count").innerHTML = `Online Users Count: ${online_users_count.count}`;
+            alert(`Online Users Count: ${online_users_count.count}`);
+        }
+
+        async function getUserOnline() {
+            const login_name = document.getElementById("login_name").value;
+            const check_user_online = await fetch(`/api/check_user_online?login_name=${login_name}`).then(res => res.json());
+            document.getElementById("user_online").innerHTML = check_user_online.is_user_online ? 'User is Online' : 'User is Offline';
+            alert(check_user_online.is_user_online ? '用户在线' : '用户不在线');
+
+            if (check_user_online.is_user_online) {
+                const userDetails = check_user_online.detail;
+                let userDetailsHTML = '<ul>';
+                for (const key in userDetails) {
+                    userDetailsHTML += `<li>${key}: ${userDetails[key]}</li>`;
+                }
+                userDetailsHTML += '</ul>';
+                document.getElementById("user_details").innerHTML = userDetailsHTML
+                                userDetailsHTML += '</ul>';
+                document.getElementById("user_details").innerHTML = userDetailsHTML;
+            } else {
+                document.getElementById("user_details").innerHTML = '';
+            }
+        }
+
+async function getUsersByRegion(offset = 0) {
+    const region_name_list = document.getElementById("region_name_list").value;
+    const valid_region_codes = {{ region_codes | tojson }};
+    if (!valid_region_codes.hasOwnProperty(region_name_list)) {
+        alert("无效的区域名，请输入有效的区域名");
+        document.getElementById("region_name_list").value = '';
+        return;
+    }
+
+    const limit = 50;
+    const users_by_region = await fetch(`/api/users_by_region?region_name=${region_name_list}&limit=${limit}&offset=${offset}`).then(res => res.json());
+    let userListHTML = '<table class="table table-striped table-hover table-bordered"><thead class="thead-dark"><tr>';
+    if (users_by_region.users.length > 0) {
+        userListHTML += '<th>login_name</th>';
+        for (const key in users_by_region.users[0]) {
+            if (key !== 'login_name') {
+                userListHTML += `<th>${key}</th>`;
+            }
+        }
+        userListHTML += '</tr></thead><tbody>';
+        users_by_region.users.forEach(user => {
+            userListHTML += '<tr>';
+            userListHTML += `<td>${user['login_name']}</td>`;
+            for (const key in user) {
+                if (key !== 'login_name') {
+                    userListHTML += `<td>${user[key]}</td>`;
+                }
+            }
+            userListHTML += '</tr>';
+        });
+        userListHTML += '</tbody></table>';
+
+        // Pagination
+        userListHTML += `<nav aria-label="Page navigation">
+            <ul class="pagination">
+                <li class="page-item ${offset === 0 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="getUsersByRegion(${Math.max(offset - limit, 0)})">Previous</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="getUsersByRegion(${offset + limit})">Next</a>
+                </li>
+            </ul>
+        </nav>`;
+    } else {
+        userListHTML = '<p>No users found for the given region.</p>';
+    }
+    document.getElementById("user_list").innerHTML = userListHTML;
+}
+
+    </script>
+</body>
+</html>
+
